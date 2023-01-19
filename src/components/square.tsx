@@ -1,9 +1,9 @@
 import '../styles/square.sass'
 
 export enum SquareType {
-    Type0 = 'type0',
-    Type1 = 'type1',
-    Type2 = 'type2',
+    Empty = 'type0',
+    CurrentPiece = 'type1',
+    StackedPiece = 'type2',
     Type3 = 'type3'
 }
 
