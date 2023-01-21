@@ -1,4 +1,4 @@
-import { SquareType } from "../components/square";
+import { SquareType } from "./Types";
 
 export function switchElement(matrix: SquareType[][], x:number, y:number, type: SquareType){
     let newMatrix = matrix.map((row, index1) => (

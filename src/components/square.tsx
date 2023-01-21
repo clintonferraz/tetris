@@ -1,11 +1,5 @@
 import '../styles/square.sass'
-
-export enum SquareType {
-    Empty = 'type0',
-    CurrentPiece = 'type1',
-    StackedPiece = 'type2',
-    Type3 = 'type3'
-}
+import { SquareType } from '../utils/Types'
 
 type SquareProps = {
     type: SquareType;

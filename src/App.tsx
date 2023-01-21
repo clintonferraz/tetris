@@ -1,24 +1,12 @@
 import { useEffect, useRef, useState } from "react"
-import { Square, SquareType } from "./components/square"
+import { Square } from "./components/square"
 import { Constants } from "./environment/constants"
 import { Field } from "./components/field"
 import { Row } from "./components/row"
 import { switchElement } from "./utils/switchElement"
+import { Direction, SquareType, PieceType } from "./utils/Types"
 import './styles/app.sass'
 
-enum PieceType {
-    L,
-    T,
-    I,
-    J
-}
-
-enum Direction {
-    Up,
-    Right,
-    Down,
-    Left
-}
 
 function App() {
     const [fieldMatrix, setFieldMatrix] = useState<SquareType[][]>(Array(Constants.FIELD_HEIGHT).fill(null).map(() =>
@@ -41,7 +29,7 @@ function App() {
         document.addEventListener('keydown', (event) => {
             switch (event.key) {
                 case ' ':
-                    start();
+                    makeNewPieceFall();
                     break;
                 case 'ArrowRight':
                     handlePieceMovement(Direction.Right);
@@ -52,6 +40,11 @@ function App() {
         }
         });
     }, []);
+
+    function switchSquareTo(type: SquareType, row: number, column: number) {
+        currentMatrix = switchElement(currentMatrix, row, column, type);
+        setFieldMatrix(currentMatrix);
+    }
 
     function drawPiece(pieceParts: Array<{row: number, column: number}>){ //only draw on the field
         pieceParts.forEach(part => {
@@ -89,12 +82,10 @@ function App() {
         let result = false;
         for (let i = 0; i < currentPiece.current.parts.length; i++) {
             if(currentPiece.current.parts[i].row == Constants.FIELD_HEIGHT - 1){ //if piece hits bottom
-                
                 result = true;
                 break;
             }
-            if(currentMatrix[currentPiece.current.parts[i].row + 1][currentPiece.current.parts[i].column] == SquareType.StackedPiece){
-                console.log('22222');
+            if(currentMatrix[currentPiece.current.parts[i].row + 1][currentPiece.current.parts[i].column] == SquareType.StackedPiece){ //if hits another stacked piece
                 result = true;
                 break;
             }
@@ -105,96 +96,45 @@ function App() {
     }
 
     function stopCurrentPiece(){
-        //clearInterval(interval.current);
+        clearInterval(interval.current);
         currentPiece.current.parts.forEach( part => {
             switchSquareTo(SquareType.StackedPiece, part.row, part.column);
-        })
-        updateCurrentMatrix();
-        checkForCompleteRow();
-        makePieceAt(PieceType.J,0,0);
-    }
-
-    function checkForCompleteRow(){
-        let isComplete = false;
-        for (let i = 0; i < currentMatrix.length; i++) {
-            if(currentMatrix[i][0] == SquareType.StackedPiece){
-                console.log('piece stacked at first position');
-                isComplete = true;
-                for(let j = 0; j < currentMatrix[i].length; j++){
-                    if(currentMatrix[i][j] != SquareType.StackedPiece){
-                        isComplete = false
-                        console.log('B');
-                    }
-                }
-                if(isComplete){
-                    currentMatrix[i].forEach((_, index) => {
-                        switchSquareTo(SquareType.Empty, i, index);
-                    })
-                    
-                    console.log('a');
-                }
-            }
-        }
-
-/*         currentMatrix.forEach(row => {
-            if(row[0] == SquareType.StackedPiece){
-                let isRowComplete = true;
-                row.forEach(squareType =>{
-                    if(squareType != SquareType.StackedPiece){
-                        isRowComplete = false;
-                    }
-                })
-                if(isRowComplete){
-                    return true;
-                }
-            }
-        }); */
-    }
-
-    function updateCurrentMatrix(){
-        setFieldMatrix(prev => {
-            currentMatrix = [... prev];
-            return prev
         });
-  
+        handleCompleteRow().then(makeNewPieceFall);
+        
     }
 
-    function start(){
-        makePieceAt(PieceType.J ,0 ,0 );
-        clearInterval(interval.current);
-        interval.current = setInterval(() => {
-            updateCurrentMatrix();
-            if(shouldPieceStop()){
-                stopCurrentPiece();
-            }else{
-                handlePieceMovement(Direction.Down);
+    function handleCompleteRow(){
+        return new Promise<void>(resolve=> {
+            let rowCount = 0;
+            for (let row = 0; row < currentMatrix.length; row++) {
+                if(currentMatrix[row][0] == SquareType.StackedPiece){
+                    for(let j = 0; j < currentMatrix[row].length; j++){
+                        if(currentMatrix[row][j] == SquareType.StackedPiece){
+                            rowCount++;
+                        }else{
+                            rowCount=0;
+                            break;
+                        }
+                    }
+                    
+                }
+                if(rowCount == Constants.FIELD_WIDTH){ //if row is complete
+                    console.log(row);
+                    eraseRow(row);
+                    setTimeout(() => {
+                        knockOverStack(row);
+                        setTimeout(() => {
+                            resolve();
+                        }, Constants.GAME_INTERVAL);
+                    }, Constants.GAME_INTERVAL);
+                }else{
+                    resolve();
+                }
+                rowCount=0;
             }
-            
-        }, 300);
-    }
 
-    function handlePieceMovement(direction: Direction){
-        let shouldMove = true;
-        switch (direction) {
-            case Direction.Down:
-                currentPiece.current.parts.forEach(part => {
-                    if(part.row == Constants.FIELD_HEIGHT - 1) shouldMove = false;
-                });
-                break;
-            case Direction.Left:
-                currentPiece.current.parts.forEach(part => {
-                    if(part.column == 0) shouldMove = false; //should not move if at the begining of the field
-                    if(currentMatrix[part.row][part.column-1] == SquareType.StackedPiece) shouldMove = false; //should not move left if there are pieces stacked at left
-                });
-                break;
-            case Direction.Right:
-                currentPiece.current.parts.forEach(part => {
-                    if(part.column == Constants.FIELD_WIDTH - 1) shouldMove = false; //should not move if at the end of the field
-                    if(currentMatrix[part.row][part.column+1] == SquareType.StackedPiece) shouldMove = false; //should not move right if there are pieces stacked at right
-                });
-                break;
-        }
-        if (shouldMove) movePiece(direction);
+        });
     }
 
     function movePiece(direction: Direction){
@@ -222,9 +162,62 @@ function App() {
         drawPiece(currentPiece.current.parts);
     }
 
-    function switchSquareTo(type: SquareType, row: number, column: number) {
-        setFieldMatrix((prev) => switchElement(prev, row, column, type));
+    function eraseRow(row: number){
+        currentMatrix[row].forEach((_value, column) => {
+            switchSquareTo(SquareType.Empty, row, column);
+        })
     }
+
+    function knockOverStack(row: number){
+        if(row == 0){
+            currentMatrix[row].forEach((value, column) => {
+                switchSquareTo(SquareType.Empty, row, column);
+            })
+        }else{
+            currentMatrix[row].forEach((value, column) => {
+                switchSquareTo(currentMatrix[row - 1][column], row, column);
+            })
+            knockOverStack(row - 1);
+        }
+    }
+
+    function makeNewPieceFall(){
+        makePieceAt(PieceType.J ,0 ,0 );
+        clearInterval(interval.current);
+        interval.current = setInterval(() => {
+            if(shouldPieceStop()){
+                stopCurrentPiece();
+            }else{
+                handlePieceMovement(Direction.Down);
+            }
+        }, Constants.GAME_INTERVAL);
+    }
+
+    function handlePieceMovement(direction: Direction){
+        let shouldMove = true;
+        switch (direction) {
+            case Direction.Down:
+                currentPiece.current.parts.forEach(part => {
+                    if(part.row == Constants.FIELD_HEIGHT - 1) shouldMove = false;
+                });
+                break;
+            case Direction.Left:
+                currentPiece.current.parts.forEach(part => {
+                    if(part.column == 0) shouldMove = false; //should not move if at the begining of the field
+                    if(currentMatrix[part.row][part.column-1] == SquareType.StackedPiece) shouldMove = false; //should not move left if there are pieces stacked at left
+                });
+                break;
+            case Direction.Right:
+                currentPiece.current.parts.forEach(part => {
+                    if(part.column == Constants.FIELD_WIDTH - 1) shouldMove = false; //should not move if at the end of the field
+                    if(currentMatrix[part.row][part.column+1] == SquareType.StackedPiece) shouldMove = false; //should not move right if there are pieces stacked at right
+                });
+                break;
+        }
+        if (shouldMove) movePiece(direction);
+    }
+
+
 
     return (
         <div className="App">
