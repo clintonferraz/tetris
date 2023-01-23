@@ -9,7 +9,8 @@ export enum PieceType {
     L,
     T,
     I,
-    J
+    J,
+    O
 }
 
 export enum SquareType {

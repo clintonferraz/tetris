@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react"
-import { Square } from "./components/square"
-import { Constants } from "./environment/constants"
-import { Field } from "./components/field"
-import { Row } from "./components/row"
-import { switchElement } from "./utils/switchElement"
-import { Direction, SquareType, PieceType } from "./utils/Types"
-import './styles/app.sass'
+import { Square } from "../components/square"
+import { Constants } from "../environment/constants"
+import { Field } from "../components/field"
+import { Row } from "../components/row"
+import { switchElement } from "../utils/switchElement"
+import { Direction, SquareType, PieceType } from "../utils/Types"
+import '../styles/home.sass'
 
 
 function App() {
@@ -37,6 +37,9 @@ function App() {
                 case 'ArrowLeft':
                     handlePieceMovement(Direction.Left);
                     break;
+                case 'ArrowUp':
+                    rotatePiece();
+                    break;
         }
         });
     }, []);
@@ -58,17 +61,31 @@ function App() {
         });
     }
 
+    function rotatePiece(){
+        erasePiece(currentPiece.current.parts);
+        currentPiece.current.parts.forEach( part => {
+            let currentDistanceToRotationAxisX = part.column - currentPiece.current.position.column;
+            let currentDistanceToRotationAxisY = part.row - currentPiece.current.position.row;
+            let newDistanceToRotationAxisX = -currentDistanceToRotationAxisY;
+            let newDistanceToRotationAxisY = currentDistanceToRotationAxisX;
+            part.row = currentPiece.current.position.row + newDistanceToRotationAxisY;
+            part.column = currentPiece.current.position.column + newDistanceToRotationAxisX;
+        });   
+        drawPiece(currentPiece.current.parts);
+    }
+
 
     function makePieceAt(type: PieceType, row: number, column: number) {
         switch (type) {
             case PieceType.J:
+                currentPiece.current.type = PieceType.J;
                 currentPiece.current.position.row = row;
-                currentPiece.current.position.row = column;
+                currentPiece.current.position.column = column;
                 currentPiece.current.parts = [
                     {row: row, column: column}, 
                     {row: row, column: column + 1}, 
-                    {row: row, column: column + 2}, 
-                    {row: row + 1, column: column + 2}
+                    {row: row, column: column - 1}, 
+                    {row: row + 1, column: column + 1}
                 ];
                 drawPiece(currentPiece.current.parts);
                 break;
@@ -182,7 +199,7 @@ function App() {
     }
 
     function makeNewPieceFall(){
-        makePieceAt(PieceType.J ,0 ,0 );
+        makePieceAt(PieceType.J ,0 ,6 );
         clearInterval(interval.current);
         interval.current = setInterval(() => {
             if(shouldPieceStop()){
@@ -234,7 +251,6 @@ function App() {
                     ))
                 }
             </ Field>
-            <button onClick={()=>console.log(fieldMatrix)}>teste</button>
         </div>
     )
 }
