@@ -19,7 +19,7 @@ function App() {
         type: 0,
         orientation: 0,
         position: { row: 0, column: 0 },
-        parts: [{row:0, column:0}]
+        parts: [{row:0, column:0}],
     });
 
     const interval = useRef(0);
@@ -38,10 +38,11 @@ function App() {
                     handlePieceMovement(Direction.Left);
                     break;
                 case 'ArrowUp':
-                    rotatePiece();
+                    handleRotatePiece();
                     break;
-        }
+            }
         });
+
     }, []);
 
     function switchSquareTo(type: SquareType, row: number, column: number) {
@@ -49,9 +50,34 @@ function App() {
         setFieldMatrix(currentMatrix);
     }
 
-    function drawPiece(pieceParts: Array<{row: number, column: number}>){ //only draw on the field
+    function drawPiece(pieceParts: Array<{row: number, column: number}>, pieceType: PieceType){ //only draw on the field
+        let squareType: SquareType;
+        switch (pieceType) {
+            case PieceType.L:
+                squareType = SquareType.PieceL
+                break;
+            case PieceType.I:
+                squareType = SquareType.PieceI
+                break;
+            case PieceType.T:
+                squareType = SquareType.PieceT
+                break;
+            case PieceType.J:
+                squareType = SquareType.PieceJ
+                break;
+            case PieceType.O:
+                squareType = SquareType.PieceO
+                break;
+            case PieceType.S:
+                squareType = SquareType.PieceS
+                break;
+            case PieceType.Z:
+                squareType = SquareType.PieceZ
+                break;
+
+        }
         pieceParts.forEach(part => {
-            switchSquareTo(SquareType.CurrentPiece, part.row, part.column);
+            switchSquareTo(squareType, part.row, part.column);
         });
     }
 
@@ -61,36 +87,103 @@ function App() {
         });
     }
 
-    function rotatePiece(){
-        erasePiece(currentPiece.current.parts);
-        currentPiece.current.parts.forEach( part => {
-            let currentDistanceToRotationAxisX = part.column - currentPiece.current.position.column;
-            let currentDistanceToRotationAxisY = part.row - currentPiece.current.position.row;
-            let newDistanceToRotationAxisX = -currentDistanceToRotationAxisY;
-            let newDistanceToRotationAxisY = currentDistanceToRotationAxisX;
-            part.row = currentPiece.current.position.row + newDistanceToRotationAxisY;
-            part.column = currentPiece.current.position.column + newDistanceToRotationAxisX;
-        });   
-        drawPiece(currentPiece.current.parts);
+    function handleRotatePiece(){
+        let shouldRotate = true;
+        getNewPartsPositions().forEach(part => {
+            if(part.row < 0 || part.column < 0 || part.row >= Constants.FIELD_HEIGHT || part.column >= Constants.FIELD_WIDTH){
+                shouldRotate = false;
+            } else if(currentMatrix[part.row][part.column] == SquareType.StackedPiece) shouldRotate = false;
+        });
+        if(shouldRotate){
+            erasePiece(currentPiece.current.parts);
+            currentPiece.current.parts = getNewPartsPositions();   
+            drawPiece(currentPiece.current.parts, currentPiece.current.type);
+        }
+        function getNewPartsPositions(){
+            let newPartsPositions : {row:number,column:number}[] = [];
+            currentPiece.current.parts.forEach( part => {
+                let newDistanceToRotationAxisX = currentPiece.current.position.row - part.row;
+                let newDistanceToRotationAxisY = part.column - currentPiece.current.position.column;
+                newPartsPositions.push({
+                    row: currentPiece.current.position.row + newDistanceToRotationAxisY,
+                    column: currentPiece.current.position.column + newDistanceToRotationAxisX
+                });
+            }); 
+            return newPartsPositions;
+        }
     }
 
 
+
     function makePieceAt(type: PieceType, row: number, column: number) {
+        currentPiece.current.type = type;
+        currentPiece.current.position.row = row;
+        currentPiece.current.position.column = column;
         switch (type) {
             case PieceType.J:
-                currentPiece.current.type = PieceType.J;
-                currentPiece.current.position.row = row;
-                currentPiece.current.position.column = column;
                 currentPiece.current.parts = [
                     {row: row, column: column}, 
                     {row: row, column: column + 1}, 
                     {row: row, column: column - 1}, 
                     {row: row + 1, column: column + 1}
                 ];
-                drawPiece(currentPiece.current.parts);
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
                 break;
         
-            default:
+            case PieceType.T:
+                currentPiece.current.parts = [
+                    {row: row, column: column}, 
+                    {row: row, column: column + 1}, 
+                    {row: row, column: column - 1}, 
+                    {row: row + 1, column: column}
+                ];
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
+                break;
+
+            case PieceType.L:
+                currentPiece.current.parts = [
+                    {row: row, column: column}, 
+                    {row: row, column: column + 1}, 
+                    {row: row, column: column - 1}, 
+                    {row: row + 1, column: column - 1}
+                ];
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
+                break;
+            case PieceType.I:
+                currentPiece.current.parts = [
+                    {row: row, column: column}, 
+                    {row: row, column: column + 1}, 
+                    {row: row, column: column + 2}, 
+                    {row: row, column: column - 1}
+                ];
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
+                break;
+            case PieceType.O:
+                currentPiece.current.parts = [
+                    {row: row, column: column}, 
+                    {row: row, column: column + 1}, 
+                    {row: row +1 , column: column}, 
+                    {row: row +1, column: column + 1}
+                ];
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
+                break;
+            case PieceType.S:
+                currentPiece.current.parts = [
+                    {row: row, column: column}, 
+                    {row: row, column: column + 1}, 
+                    {row: row +1 , column: column}, 
+                    {row: row +1, column: column - 1}
+                ];
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
+                break;
+            case PieceType.Z:
+                currentPiece.current.parts = [
+                    {row: row, column: column}, 
+                    {row: row, column: column - 1}, 
+                    {row: row +1 , column: column}, 
+                    {row: row +1, column: column + 1}
+                ];
+                drawPiece(currentPiece.current.parts, currentPiece.current.type);
                 break;
         }
 
@@ -176,7 +269,7 @@ function App() {
                 });
                 break;
         }
-        drawPiece(currentPiece.current.parts);
+        drawPiece(currentPiece.current.parts, currentPiece.current.type);
     }
 
     function eraseRow(row: number){
@@ -198,10 +291,25 @@ function App() {
         }
     }
 
+    function theGameIsOver(){
+        let result = false;
+        currentPiece.current.parts.forEach(part => {
+            if(currentMatrix[part.row + 1][part.column] == SquareType.StackedPiece){ //if hits another stacked piece
+                result = true;
+            }
+        });
+        return result;
+    }
+
     function makeNewPieceFall(){
-        makePieceAt(PieceType.J ,0 ,6 );
+        
+
+        let piece = Math.floor(Math.random() * 7);
+        makePieceAt(piece, 0, 5);
         clearInterval(interval.current);
-        interval.current = setInterval(() => {
+        if(theGameIsOver()){
+            alert("Game Over!")
+        }else interval.current = setInterval(() => {
             if(shouldPieceStop()){
                 stopCurrentPiece();
             }else{
@@ -209,6 +317,7 @@ function App() {
             }
         }, Constants.GAME_INTERVAL);
     }
+
 
     function handlePieceMovement(direction: Direction){
         let shouldMove = true;
