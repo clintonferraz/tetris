@@ -1,10 +1,7 @@
 import { SquareType } from "./Types";
 
 export function switchElement(matrix: SquareType[][], x:number, y:number, type: SquareType){
-    let newMatrix = matrix.map((row, index1) => (
-        row.map((value, index2) => 
-            (index1==x && index2==y) ? type : value
-        )
-    ));
+    let newMatrix = [ ...matrix];
+    newMatrix[x][y] = type;
     return newMatrix;
 }

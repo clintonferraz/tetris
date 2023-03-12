@@ -46,8 +46,9 @@ function App() {
     }, []);
 
     function switchSquareTo(type: SquareType, row: number, column: number) {
-        currentMatrix = switchElement(currentMatrix, row, column, type);
-        setFieldMatrix(currentMatrix);
+        let newMatrix = [ ...currentMatrix];
+        newMatrix[row][column] = type;
+        setFieldMatrix(newMatrix);
     }
 
     function drawPiece(pieceParts: Array<{row: number, column: number}>, pieceType: PieceType){ //only draw on the field
